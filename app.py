@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from flask import Flask, request, jsonify, session
 from flask.globals import session
+from flask_marshmallow.schema import Schema
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_bcrypt import Bcrypt
@@ -41,9 +42,19 @@ class Blog(db.Model):
   blog_id = db.Column(db.Integer, primary_key = True)
   blog_title = db.Column(db.String(100), nullable = False)
 
+  def __init__(self, blog_title):
+    self.blog_title = blog_title
+
+
+class BlogSchema(ma.Schema):
+  class Meta:
+    fields = ("blog_id", "blog_title")
+
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
+blog_schema = BlogSchema()
+blogs_schema = BlogSchema(many= True)
 
 
 @app.route('/')
@@ -71,6 +82,21 @@ def register():
 def get_users():
   all_users = User.query.all()
   return jsonify(users_schema.dump(all_users))
+
+
+@app.route('/api/v1/create_blog', methods=['POST'])
+def create_blog():
+  post_data = request.get_json()
+  blog_title = post_data.get('blog_title')
+  new_blog = Blog(blog_title)
+  db.session.add(new_blog)
+  db.session.commit()
+  return jsonify(blog_schema.dump(new_blog))
+
+@app.route('/api/v1/get_blogs')
+def get_blogs():
+  all_blogs = Blog.query.all()
+  return jsonify(blogs_schema.dump(all_blogs))
 
 if __name__ == "__main__":
     app.debug = True
