@@ -140,6 +140,15 @@ def delete_user(id):
     return "User NOT Found", 404
 
 
+@app.route('/api/v1/delete-blog/<id>', methods=['DELETE'])
+def delete_blog(id):
+  blog = Blog.query.filter_by(blog_id = id). first()
+  if blog:
+    db.session.delete(blog)
+    db.session.commit()
+    return jsonify('Blog Deleted')
+  return "Blog Not Found", 404
+
 
 if __name__ == "__main__":
     app.debug = True
