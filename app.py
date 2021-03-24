@@ -127,7 +127,7 @@ def logged_in():
         else:
             return jsonify('Session exists, but user does not exist')
     else:
-        return jsonify('Nope!')
+        return jsonify('Not logged in')
 
 
 @app.route('/api/v1/delete-user/<id>', methods=['DELETE'])
@@ -148,6 +148,13 @@ def delete_blog(id):
     db.session.commit()
     return jsonify('Blog Deleted')
   return "Blog Not Found", 404
+
+
+@app.route('/api/v1/logout', methods=['POST'])
+def logout():
+    session.clear()
+    #session.pop('username', None)
+    return jsonify('Logged Out')
 
 
 if __name__ == "__main__":
