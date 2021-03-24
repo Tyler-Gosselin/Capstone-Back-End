@@ -130,6 +130,17 @@ def logged_in():
         return jsonify('Nope!')
 
 
+@app.route('/api/v1/delete-user/<id>', methods=['DELETE'])
+def delete_user(id):
+    user = User.query.filter_by(user_id=id).first()
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify('User Deleted')
+    return "User NOT Found", 404
+
+
+
 if __name__ == "__main__":
     app.debug = True
     app.run()
