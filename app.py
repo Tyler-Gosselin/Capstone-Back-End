@@ -4,8 +4,11 @@ from flask import Flask, json, request, jsonify, session
 from flask.globals import session
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from marshmallow import fields
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from marshmallow.utils import EXCLUDE
+from sqlalchemy.orm import backref
 
 
 app = Flask(__name__)
@@ -20,7 +23,7 @@ flask_bcrypt = Bcrypt(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(45), unique = False, nullable=False)
+    username = db.Column(db.String(45), unique = True, nullable=False)
     email = db.Column(db.String(100), unique = False,  nullable=False)
     password = db.Column(db.String(45), unique = False, nullable=False)
 
@@ -30,25 +33,32 @@ class User(db.Model):
         self.password = password
 
 
-class UserSchema(ma.Schema):
-    class Meta:
-        fields = ("id", "username", "email", "password")
-
-
 class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), unique = False,  nullable=False)
-    author = db.Column(db.String(40), unique = False,  nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    author = db.relationship("User", backref = "blogs")
 
-    def __init__(self, title, author):
+    def __init__(self, title, content, user_id):
         self.title = title
-        self.author = author
+        self.content = content
+        self.user_id = user_id
 
 
-class BlogSchema(ma.Schema):
+class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
-        fields = ("id", "title", "author")
+        model = User
+
+    # blogs = fields.Nested(lambda:BlogSchema(exclude=["id", "user_id"]))
+    blogs = fields.List(fields.Nested(lambda: BlogSchema(only=["title", "content"])))
+
+
+class BlogSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Blog
+
+    author = fields.Nested(lambda: UserSchema(exclude=["password"]))
 
 
 user_schema = UserSchema()
@@ -89,8 +99,9 @@ def get_users():
 def create_blog():
     post_data = request.get_json()
     title = post_data.get('title')
-    author = post_data.get('author')
-    new_blog = Blog(title, author)
+    content = post_data.get('content')
+    user_id = post_data.get('user_id')
+    new_blog = Blog(title, content, user_id)
     db.session.add(new_blog)
     db.session.commit()
     return jsonify(blog_schema.dump(new_blog))
@@ -106,7 +117,7 @@ def get_blogs():
 def edit_blog(blog_id):
     blog = Blog.query.filter_by(id=blog_id).first()
     blog.title = request.json.get('title')
-    blog.author = request.json.get('author')
+    blog.content = request.json.get('content')
     db.session.commit()
     return jsonify(blog_schema.dump(blog))
 
