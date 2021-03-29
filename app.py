@@ -1,20 +1,19 @@
 import os
 from datetime import timedelta
-from flask import Flask, json, request, jsonify, session
+from flask import Flask, request, jsonify, session
 from flask.globals import session
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from marshmallow import fields
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from marshmallow.utils import EXCLUDE
-from sqlalchemy.orm import backref
 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///app.sqlite"
 app.secret_key = os.environ.get('SECRET_KEY')
 app.permanent_session_lifetime = timedelta(days=14)
+
 CORS(app, supports_credentials=True)
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
@@ -23,9 +22,9 @@ flask_bcrypt = Bcrypt(app)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(45), unique = True, nullable=False)
-    email = db.Column(db.String(100), unique = False,  nullable=False)
-    password = db.Column(db.String(45), unique = False, nullable=False)
+    username = db.Column(db.String(45), unique=True, nullable=False)
+    email = db.Column(db.String(100), unique=False,  nullable=False)
+    password = db.Column(db.String(45), unique=False, nullable=False)
 
     def __init__(self, username, email, password):
         self.username = username
@@ -38,7 +37,7 @@ class Blog(db.Model):
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    author = db.relationship("User", backref = "blogs")
+    author = db.relationship("User", backref="blogs")
 
     def __init__(self, title, content, user_id):
         self.title = title
@@ -51,12 +50,14 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
         model = User
 
     # blogs = fields.Nested(lambda:BlogSchema(exclude=["id", "user_id"]))
-    blogs = fields.List(fields.Nested(lambda: BlogSchema(only=["title", "content"])))
+    blogs = fields.List(fields.Nested(
+        lambda: BlogSchema(only=["title", "content", "user_id"])))
 
 
 class BlogSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Blog
+        include_fk = True
 
     author = fields.Nested(lambda: UserSchema(exclude=["password"]))
 
@@ -80,13 +81,13 @@ def register():
     password = post_data.get('password')
     hashed_password = flask_bcrypt.generate_password_hash(
         password).decode('utf-8')
-    new_user = User(username, email, password = hashed_password)
+    new_user = User(username, email, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
     session.permanent = True
     session['username'] = username
-    print(session)
-    return jsonify(user_schema.dump(new_user))
+    return jsonify({"message": 'User Verified', "user_id": new_user.id})
+    
 
 
 @app.route('/api/get-users')
@@ -112,10 +113,15 @@ def get_blogs():
     all_blogs = Blog.query.all()
     return jsonify(blogs_schema.dump(all_blogs))
 
+@app.route('/api/get-blog/<id>')
+def get_blog(id):
+    blog= Blog.query.get(id)
+    return blog_schema.jsonify(blog)
+    
 
-@app.route('/api/edit-blog/<blog_id>', methods=['PATCH'])
-def edit_blog(blog_id):
-    blog = Blog.query.filter_by(id=blog_id).first()
+@app.route('/api/edit-blog/<id>', methods=['PATCH'])
+def edit_blog(id):
+    blog = Blog.query.filter_by(id=id).first()
     blog.title = request.json.get('title')
     blog.content = request.json.get('content')
     db.session.commit()
@@ -136,7 +142,7 @@ def login():
     if valid_password:
         session.permanent = True
         session['username'] = post_data.get('username')
-        return jsonify('User Verified')
+        return jsonify({"message": 'User Verified', "user_id": db_user.id})
     return "Password Invalid", 401
 
 
@@ -145,7 +151,7 @@ def logged_in():
     if 'username' in session:
         db_user = User.query.filter_by(username=session['username']).first()
         if db_user:
-            return jsonify('User Logged in Via Cookie')
+            return jsonify({"message": 'User Logged in Via Cookie', "user_id": db_user.id})
         else:
             return jsonify('Session exists, but user does not exist')
     else:
