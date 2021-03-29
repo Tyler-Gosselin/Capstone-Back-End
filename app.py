@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///app.sqlite"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATBASE_URL') or "sqlite:///app.sqlite"
 app.secret_key = os.environ.get('SECRET_KEY')
 app.permanent_session_lifetime = timedelta(days=14)
 
