@@ -1,6 +1,6 @@
 # Summary
 
-> This project was made while attending the Bottega Coding bootcamp.
+> This project was made while attending the Bottega Coding bootcamp. The project is built using a Flask API using a SQL database. The front end was built with React. 
 
 ## Dependency Docs
 
