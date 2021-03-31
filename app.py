@@ -26,10 +26,10 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=False,  nullable=False)
     password = db.Column(db.String(45), unique=False, nullable=False)
 
-    def __init__(self, username, email, password):
-        self.username = username
-        self.email = email
-        self.password = password
+    # def __init__(self, username, email, password):
+    #     self.username = username
+    #     self.email = email
+    #     self.password = password
 
 
 class Blog(db.Model):
@@ -39,10 +39,10 @@ class Blog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     author = db.relationship("User", backref="blogs")
 
-    def __init__(self, title, content, user_id):
-        self.title = title
-        self.content = content
-        self.user_id = user_id
+    # def __init__(self, title, content, user_id):
+    #     self.title = title
+    #     self.content = content
+    #     self.user_id = user_id
 
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -81,7 +81,7 @@ def register():
     password = post_data.get('password')
     hashed_password = flask_bcrypt.generate_password_hash(
         password).decode('utf-8')
-    new_user = User(username, email, password=hashed_password)
+    new_user = User(username = username, email= email, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
     session.permanent = True
@@ -102,7 +102,7 @@ def create_blog():
     title = post_data.get('title')
     content = post_data.get('content')
     user_id = post_data.get('user_id')
-    new_blog = Blog(title, content, user_id)
+    new_blog = Blog(title = title, content = content , user_id = user_id)
     db.session.add(new_blog)
     db.session.commit()
     return jsonify(blog_schema.dump(new_blog))
@@ -170,7 +170,7 @@ def delete_user(id):
 
 @app.route('/api/delete-blog/<id>', methods=['DELETE'])
 def delete_blog(id):
-    blog = Blog.query.filter_by(id=id). first()
+    blog = Blog.query.filter_by(id=id).first()
     if blog:
         db.session.delete(blog)
         db.session.commit()
