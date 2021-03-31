@@ -133,3 +133,9 @@ body: {
 ### Delete a blog
 
 -localhost:5000/api/delete-blog/<id>
+
+## Hosting
+
+- [Netlify](https://tg-capstone.netlify.app)
+- [Heroku](https://tg-capstone.herokuapp.com/)
+
