@@ -10,10 +10,10 @@ from flask_cors import CORS
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATBASE_URL') or "sqlite:///app.sqlite"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL') or "sqlite:///app.sqlite"
 app.secret_key = os.environ.get('SECRET_KEY') or "SUPER_SECRET"
 app.permanent_session_lifetime = timedelta(days=14)
-print(app.config)
 
 CORS(app, supports_credentials=True)
 db = SQLAlchemy(app)
@@ -27,11 +27,6 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=False,  nullable=False)
     password = db.Column(db.String(45), unique=False, nullable=False)
 
-    # def __init__(self, username, email, password):
-    #     self.username = username
-    #     self.email = email
-    #     self.password = password
-
 
 class Blog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,11 +34,6 @@ class Blog(db.Model):
     content = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     author = db.relationship("User", backref="blogs")
-
-    # def __init__(self, title, content, user_id):
-    #     self.title = title
-    #     self.content = content
-    #     self.user_id = user_id
 
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -82,13 +72,12 @@ def register():
     password = post_data.get('password')
     hashed_password = flask_bcrypt.generate_password_hash(
         password).decode('utf-8')
-    new_user = User(username = username, email= email, password=hashed_password)
+    new_user = User(username=username, email=email, password=hashed_password)
     db.session.add(new_user)
     db.session.commit()
     session.permanent = True
     session['username'] = username
     return jsonify({"message": 'User Verified', "user_id": new_user.id})
-    
 
 
 @app.route('/api/get-users')
@@ -103,7 +92,7 @@ def create_blog():
     title = post_data.get('title')
     content = post_data.get('content')
     user_id = post_data.get('user_id')
-    new_blog = Blog(title = title, content = content , user_id = user_id)
+    new_blog = Blog(title=title, content=content, user_id=user_id)
     db.session.add(new_blog)
     db.session.commit()
     return jsonify(blog_schema.dump(new_blog))
@@ -114,11 +103,12 @@ def get_blogs():
     all_blogs = Blog.query.all()
     return jsonify(blogs_schema.dump(all_blogs))
 
+
 @app.route('/api/get-blog/<id>')
 def get_blog(id):
-    blog= Blog.query.get(id)
+    blog = Blog.query.get(id)
     return blog_schema.jsonify(blog)
-    
+
 
 @app.route('/api/edit-blog/<id>', methods=['PATCH'])
 def edit_blog(id):
